@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+  <title>Karan Choudhary QR Generator</title>
+  <!-- Google Font & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- QRCode library (lightweight) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    /* RESET + GLOBAL */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #d9e4f0;  /* soft base */
+      background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.7) 0%, transparent 30%),
+                        radial-gradient(circle at 90% 75%, rgba(200,220,245,0.6) 0%, transparent 40%);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem;
+    }
+
+    /* main card – fully responsive, softer corners on mobile */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 3rem 2rem 3rem 2rem;
+      box-shadow: 0 25px 45px -20px rgba(0,30,50,0.3), 
+                  inset 0 1px 3px rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.6);
+      width: min(740px, 100%);
+      padding: 1.8rem 1.5rem 2.2rem;
+      transition: border-radius 0.2s;
+    }
+
+    /* smaller radius on very small devices */
+    @media (max-width: 420px) {
+      .glass-card {
+        border-radius: 2.2rem 1.5rem 2.2rem 1.5rem;
+        padding: 1.3rem 1rem 2rem;
+      }
+    }
+
+    h1 {
+      font-weight: 500;
+      font-size: clamp(1.8rem, 8vw, 2.8rem);
+      letter-spacing: -0.02em;
+      color: #112a3a;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.2rem;
+      border-left: 5px solid #2b638f;
+      padding-left: 1rem;
+      flex-wrap: wrap;
+    }
+
+    h1 span {
+      background: #2b638f;
+      color: white;
+      font-size: clamp(0.65rem, 3vw, 1rem);
+      padding: 0.2rem 1rem;
+      border-radius: 50px;
+      font-weight: 420;
+      letter-spacing: 0.5px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* Removed .sub section entirely — both lines deleted */
+
+    /* input panel — adapts perfectly */
+    .input-panel {
+      background: rgba(255,255,255,0.4);
+      border-radius: 2.5rem 1.2rem 2.5rem 1.2rem;
+      padding: 1.2rem 1.2rem 1.2rem 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .field i {
+      font-size: 1.3rem;
+      color: #1f4b70;
+      min-width: 1.8rem;
+      text-align: center;
+    }
+
+    .field input, .field select {
+      background: rgba(255,255,255,0.75);
+      border: 1.5px solid transparent;
+      outline: none;
+      padding: 0.9rem 1rem;
+      border-radius: 2rem 1rem 2rem 1rem;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      color: #102b3b;
+      font-weight: 450;
+      box-shadow: 0 4px 10px rgba(0, 10, 20, 0.03);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field input {
+      flex: 3 1 200px;
+      min-width: 160px;
+    }
+
+    .field select {
+      flex: 1 1 110px;
+      background: rgba(240, 248, 255, 0.9);
+      cursor: pointer;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%232f5c8a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1rem;
+      padding-right: 2.2rem;
+    }
+
+    .field input:focus, .field select:focus {
+      border-color: #2b638f;
+      background: white;
+      box-shadow: 0 8px 20px -12px #1f4b77;
+    }
+
+    /* QR container – touch friendly */
+    .qr-showcase {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.3);
+      border-radius: 3rem 1.5rem 3rem 1.5rem;
+      padding: 1.8rem 1rem 1.8rem 1rem;
+      margin-bottom: 1.8rem;
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 15px 30px -15px #1d4057;
+    }
+
+    #qrcode-container {
+      background: white;
+      padding: 0.8rem;
+      border-radius: 2rem 1rem 2rem 1rem;
+      box-shadow: 0 16px 28px -16px #0e3349, inset 0 -1px 0 rgba(0,0,0,0.02);
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    #qrcode {
+      border-radius: 1rem 0.5rem 1rem 0.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    #qrcode canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 1rem 0.5rem 1rem 0.5rem;
+      display: block;
+    }
+
+    /* QR caption removed — no text shown below QR */
+
+    /* action buttons — stacked on mobile, row on tablet/desktop */
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      margin: 1rem 0 1rem;
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.7);
+      border: none;
+      padding: 1rem 1.4rem;
+      border-radius: 2.2rem 1rem 2.2rem 1rem;
+      font-size: 1rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      color: #1e4057;
+      border: 1px solid rgba(255,255,255,0.8);
+      backdrop-filter: blur(6px);
+      cursor: pointer;
+      transition: 0.18s;
+      box-shadow: 0 8px 18px -12px #103348;
+      flex: 1 1 auto;
+      min-width: 160px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-primary {
+      background: #1f4460;
+      color: white;
+      border: 1px solid #ffffff70;
+      box-shadow: 0 8px 18px -10px #0a2535;
+    }
+
+    .btn-primary i {
+      color: white;
+    }
+
+    .btn:hover {
+      background: white;
+      color: #0f3143;
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:hover {
+      background: #2b5a7a;
+    }
+
+    /* active touch feedback */
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* download row — even more adaptive */
+    .download-section {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      margin-top: 0.8rem;
+      justify-content: center;
+    }
+
+    .download-section .btn {
+      flex: 1 1 120px;
+      padding: 0.9rem 0.3rem;
+      font-size: 0.9rem;
+      min-width: 110px;
+    }
+
+    .footer-note {
+      margin-top: 1.8rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #2a5e7a;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .footer-note i {
+      margin: 0 0.2rem;
+    }
+
+    ::placeholder {
+      color: #4b6f88;
+      font-weight: 300;
+      opacity: 0.8;
+    }
+
+    /* small decorative detail */
+    .border-beam {
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #2f6590, #99bede, transparent);
+      width: 80%;
+      margin: 1rem auto 0.2rem;
+      border-radius: 4px;
+    }
+
+    /* avoid overflow */
+    img, canvas {
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="glass-card">
+    <!-- Header updated with "Karan Choudhary QR Generator" -->
+    <h1>
+      <i class="fas fa-qrcode" style="color:#2b638f;"></i> Karan Choudhary
+      <span>QR•generator</span>
+    </h1>
+    <!-- Sub header completely removed (both lines deleted) -->
+
+    <!-- input field + size select, compact on mobile -->
+    <div class="input-panel">
+      <div class="field">
+        <i class="fas fa-pen-fancy"></i>
+        <input type="text" id="qr-text" placeholder="e.g. https://my.link or any text" value="https://moder.qr">
+        <select id="qr-size">
+          <option value="120">small</option>
+          <option value="200" selected>medium</option>
+          <option value="300">large</option>
+          <option value="400">x-large</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- QR display with asymmetrical style — caption line completely removed -->
+    <div class="qr-showcase">
+      <div id="qrcode-container">
+        <div id="qrcode"></div>
+      </div>
+      <!-- caption div removed (no "moder pattern · tap to download" or any text) -->
+    </div>
+
+    <!-- main action row: generate + download (both finger-friendly) -->
+    <div class="action-bar">
+      <button class="btn" id="generateBtn"><i class="fas fa-wand-magic"></i> generate</button>
+      <button class="btn btn-primary" id="downloadBtn"><i class="fas fa-download"></i> download QR</button>
+    </div>
+
+    <!-- extra download formats, perfectly stacked on small devices -->
+    <div class="download-section">
+      <button class="btn" id="downloadPng"><i class="fas fa-file-image"></i> PNG</button>
+      <button class="btn" id="downloadJpg"><i class="fas fa-camera-retro"></i> JPG</button>
+      <button class="btn" id="refreshSvg"><i class="fas fa-sync-alt"></i> refresh</button>
+    </div>
+
+    <div class="border-beam"></div>
+    <div class="footer-note">
+      <span><i class="far fa-circle-check"></i> any device</span>
+      <span><i class="fas fa-fingerprint"></i> unique UI</span>
+      <span><i class="fas fa-arrow-down"></i> PNG / JPG</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ----- all device ready -----
+      const textInput = document.getElementById('qr-text');
+      const sizeSelect = document.getElementById('qr-size');
+      const qrcodeDiv = document.getElementById('qrcode');
+      
+      let currentCanvas = null;
+
+      // generate QR code with given text & size
+      function generateQR(text, size) {
+        return new Promise((resolve, reject) => {
+          qrcodeDiv.innerHTML = ''; // clear previous
+          QRCode.toCanvas(text, { 
+            width: parseInt(size),
+            margin: 1,
+            color: {
+              dark: '#0b2b3f',     
+              light: '#ffffff'      
+            }
+          }, (error, canvas) => {
+            if (error) {
+              console.warn(error);
+              qrcodeDiv.innerHTML = `<span style="color:#a13; padding:0.5rem;">⚠️ too long / invalid</span>`;
+              reject(error);
+            } else {
+              // style canvas (rounded already via container)
+              canvas.style.maxWidth = '100%';
+              canvas.style.height = 'auto';
+              canvas.style.borderRadius = '1rem 0.5rem 1rem 0.5rem';
+              qrcodeDiv.appendChild(canvas);
+              currentCanvas = canvas;
+              resolve(canvas);
+            }
+          });
+        });
+      }
+
+      // initial load with default value
+      generateQR(textInput.value || 'https://moder.qr', sizeSelect.value).catch(e => {});
+
+      // generate button event (mobile + desktop)
+      document.getElementById('generateBtn').addEventListener('click', function() {
+        let text = textInput.value.trim();
+        if (text === '') {
+          text = 'Karan QR';
+          textInput.value = text;
+        }
+        generateQR(text, sizeSelect.value).catch(() => {
+          alert('Sorry, text too long or encoding issue. Try shorter.');
+        });
+      });
+
+      // universal download by mime type
+      function downloadQRAs(mime, ext) {
+        if (!currentCanvas) {
+          alert('Please generate a QR code first.');
+          return;
+        }
+        currentCanvas.toBlob((blob) => {
+          if (!blob) {
+            alert('Canvas conversion failed.');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `KaranQR_${Date.now()}.${ext}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, mime);
+      }
+
+      // download buttons
+      document.getElementById('downloadBtn').addEventListener('click', function() {
+        downloadQRAs('image/png', 'png');
+      });
+      document.getElementById('downloadPng').addEventListener('click', function() {
+        downloadQRAs('image/png', 'png');
+      });
+      document.getElementById('downloadJpg').addEventListener('click', function() {
+        downloadQRAs('image/jpeg', 'jpg');
+      });
+
+      // "refresh" = regenerate with current values + micro interaction (no caption to update)
+      document.getElementById('refreshSvg').addEventListener('click', function() {
+        const text = textInput.value.trim() || 'Karan QR';
+        generateQR(text, sizeSelect.value).then(() => {
+          // silent update, no caption change needed (caption removed)
+        }).catch(() => {});
+      });
+
+      // optional: double‑tap on qr downloads png (great on mobile)
+      qrcodeDiv.addEventListener('dblclick', function(e) {
+        e.preventDefault();
+        downloadQRAs('image/png', 'png');
+      });
+      // also support touch double-tap consistently
+      let lastTap = 0;
+      qrcodeDiv.addEventListener('touchend', function(e) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          e.preventDefault();
+          downloadQRAs('image/png', 'png');
+        }
+        lastTap = currentTime;
+      });
+
+      // size select auto‑generate (for easier use)
+      sizeSelect.addEventListener('change', function() {
+        generateQR(textInput.value || 'Karan QR', sizeSelect.value).catch(() => {});
+      });
+
+      // press enter on input to generate
+      textInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('generateBtn').click();
+        }
+      });
+
+      // handle small screens: ensure no overflow, canvas fits
+      window.addEventListener('resize', () => {}); // just a placeholder
+
+      // if canvas missing after load, retry (paranoid fallback)
+      window.addEventListener('load', function() {
+        if (!currentCanvas && qrcodeDiv.children.length === 0) {
+          generateQR(textInput.value || 'Karan QR', sizeSelect.value).catch(e => {});
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
